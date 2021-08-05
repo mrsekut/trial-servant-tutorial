@@ -38,6 +38,9 @@ import           Text.Blaze.Html.Renderer.Utf8
 
 
 type UserAPI = "users" :> Get '[JSON] [User]
+          :<|> "albert" :> Get '[JSON] User
+          :<|> "issac" :> Get '[JSON] User
+
 
 data User = User
   { name              :: String
@@ -51,13 +54,18 @@ instance ToJSON User
 
 
 users :: [User]
-users =
-  [ User "Isaac Newton"    372 "isaac@newton.co.uk" (fromGregorian 1683 3 1)
-  , User "Albert Einstein" 136 "ae@mc2.org"         (fromGregorian 1905 12 1)
-  ]
+users = [ isaac, albert ]
+
+isaac :: User
+isaac = User "Isaac Newton" 372 "isaac@newton.co.uk" (fromGregorian 1683 3 1)
+
+albert :: User
+albert = User "Albert Einstein" 136 "ae@mc2.org" (fromGregorian 1905 12 1)
 
 server :: Server UserAPI
 server = pure users
+    :<|> pure albert
+    :<|> pure isaac
 
 userAPI :: Proxy UserAPI
 userAPI = Proxy
