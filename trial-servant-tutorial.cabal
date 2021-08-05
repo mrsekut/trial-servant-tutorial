@@ -25,6 +25,7 @@ source-repository head
 library
   exposed-modules:
       Lib
+      Server
   other-modules:
       Paths_trial_servant_tutorial
   hs-source-dirs:
@@ -35,6 +36,17 @@ library
     , servant-server
     , wai
     , warp
+    , time
+    , base-compat-batteries
+    , mtl
+    , attoparsec
+    , bytestring
+    , string-conversions
+    , lucid
+    , http-media
+    , directory
+    , blaze-markup
+    , blaze-html
   default-language: Haskell2010
 
 executable trial-servant-tutorial-exe
