@@ -37,41 +37,82 @@ import qualified Text.Blaze.Html
 import           Text.Blaze.Html.Renderer.Utf8
 
 
-type UserAPI = "users" :> Get '[JSON] [User]
-          :<|> "albert" :> Get '[JSON] User
-          :<|> "issac" :> Get '[JSON] User
+type API = "position" :> Capture "x" Int :> Capture "y" Int :> Get '[JSON] Position -- e.g. /position/1/2
+      :<|> "hello" :> QueryParam "name" String :> Get '[JSON] HelloMessage          -- e.g. /hello?name=albert
+      :<|> "marketing" :> ReqBody '[JSON] ClientInfo :> Post '[JSON] Email          -- e.g. /marketing (POST)
 
 
-data User = User
-  { name              :: String
-  , age               :: Int
-  , email             :: String
-  , registration_date :: Day
-  } deriving (Show, Eq, Generic)
+data Position = Position
+  { xCoord :: Int
+  , yCoord :: Int
+  } deriving Generic
+
+instance ToJSON Position
 
 
-instance ToJSON User
+newtype HelloMessage = HelloMessage { msg :: String } deriving Generic
+
+instance ToJSON HelloMessage
 
 
-users :: [User]
-users = [ isaac, albert ]
+data ClientInfo = ClientInfo
+  { clientName         :: String
+  , clientEmail        :: String
+  , clientAge          :: Int
+  , clientInterestedIn :: [String]
+  } deriving Generic
 
-isaac :: User
-isaac = User "Isaac Newton" 372 "isaac@newton.co.uk" (fromGregorian 1683 3 1)
+instance FromJSON ClientInfo
+instance ToJSON ClientInfo
 
-albert :: User
-albert = User "Albert Einstein" 136 "ae@mc2.org" (fromGregorian 1905 12 1)
 
-server :: Server UserAPI
-server = pure users
-    :<|> pure albert
-    :<|> pure isaac
+data Email = Email
+  { from    :: String
+  , to      :: String
+  , subject :: String
+  , body    :: String
+  } deriving Generic
 
-userAPI :: Proxy UserAPI
-userAPI = Proxy
+instance ToJSON Email
+
+
+emailForClient :: ClientInfo -> Email
+emailForClient c = Email from' to' subject' body'
+  where
+    from'    = "great@company.com"
+    to'      = clientEmail c
+    subject' = "Hey " ++ clientName c ++ ", we miss you!"
+    body'    = "Hi " ++ clientName c ++ ",\n\n"
+            ++ "Since you've recently turned " ++ show (clientAge c)
+            ++ ", have you checked out our latest "
+            ++ intercalate ", " (clientInterestedIn c)
+            ++ " products? Give us a visit!"
+
+
+server :: Server API
+server = position
+    :<|> hello
+    :<|> marketing
+  where
+    position :: Int -> Int -> Handler Position
+    position x y = pure (Position x y)
+
+    hello :: Maybe String -> Handler HelloMessage
+    hello mname = pure . HelloMessage $ case mname of
+      Nothing -> "Hello, anonymous coward"
+      Just n  -> "Hello, " ++ n
+
+    marketing :: ClientInfo -> Handler Email
+    marketing clientinfo = pure (emailForClient clientinfo)
+
+
+api :: Proxy API
+api = Proxy
+
 
 app :: Application
-app = serve userAPI server
+app = serve api server
+
 
 main :: IO ()
 main = run 8081 app
